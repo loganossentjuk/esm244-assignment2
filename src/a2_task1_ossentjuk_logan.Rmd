@@ -25,6 +25,10 @@ library(patchwork)
 library(lubridate)
 library(kableExtra) 
 library(ggbeeswarm)
+library(GGally)
+library(jtools)
+library(caret)
+library(AICcmodavg)
 ```
 
 # Data Visualization 
@@ -35,8 +39,15 @@ library(ggbeeswarm)
 palmetto <- read.csv(here('data', 'palmetto.csv')) %>% 
   clean_names()
 
-palmetto_sub <- palmetto %>% 
-  mutate(species = as.factor(species)) %>% 
+palmetto_exp <- palmetto %>% 
+  mutate(species = as.character(species)) %>% 
+  select(height, length, width, green_lvs, species) %>% 
+  drop_na() %>% 
+  ggpairs(aes(color = species))
+#palmetto_sub
+
+palmetto_plot <-palmetto %>% 
+  mutate(species = as.character(species)) %>% 
   select(height, length, width, green_lvs, species) %>% 
   drop_na()
 ```
@@ -44,40 +55,37 @@ palmetto_sub <- palmetto %>%
 ```{r}
 ### Figures
 
-ggpairs(palmetto_sub)
-
-p1 <- ggplot(data = palmetto_sub, aes(x = height, y = green_lvs)) + 
+p1 <- ggplot(data = palmetto_plot, aes (x = species, y = height)) + 
   geom_boxplot(aes(fill = species, width = 0.2)) + 
    scale_fill_manual(values = c("skyblue", "forestgreen"), 
                     name = "Species") +
   facet_wrap(~species) +
   theme_classic() + 
   theme(legend.position = "none") +
-  labs( x = "Height", 
-        y = "Green Leaf Percentage ")
-   
+  labs( x = "Species", 
+        y = "Height")
 
-p2 <- ggplot(data = palmetto_sub, aes (x = width, y = green_lvs)) + 
-  geom_boxplot(aes(fill = species, width = 0.2)) + 
-   scale_fill_manual(values = c("skyblue", "forestgreen"), 
-                    name = "Species") +
-  facet_wrap(~species) +
-  theme_classic() + 
-  theme(legend.position = "none") +
-  labs( x = "Width", 
-        y = "Green Leaf Percentage")
-
-p3 <- ggplot(data = palmetto_sub, aes (x = length, y = green_lvs)) + 
+p2 <- ggplot(data = palmetto_plot, aes (x = species, y = green_lvs)) + 
   geom_boxplot(aes(fill = species, width = 0.2)) +
   scale_fill_manual(values = c("skyblue","forestgreen"), 
                      name = "Species") +
    facet_wrap(~species) +
    theme_classic() + 
   theme(legend.position = "none") +
-  labs( x = "Length ", 
+  labs( x = "Species ", 
         y = "Green Leaf Percentage")
 
-p1 | p2 | p3
+p3 <- ggplot(data = palmetto_plot, aes(x = species, y = length)) + 
+  geom_boxplot(aes(fill = species, width = 0.2)) + 
+   scale_fill_manual(values = c("skyblue", "forestgreen"), 
+                    name = "Species") +
+  facet_wrap(~species) +
+  theme_classic() + 
+  theme(legend.position = "none") +
+  labs( x = "Species", 
+        y = "Length")
+
+p1 | p2 | p3 | 
 
 
 ```
