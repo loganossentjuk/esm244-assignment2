@@ -256,9 +256,6 @@ palmetto_blr1_fitted <- palmetto_blr1 %>%
   mutate(classify_species = case_when(
     .fitted > .5 ~ "Serenoa repens", 
     .fitted < .5 ~ "Sabal etonia"), 
-  # accuracy = case_when(
-  #   species == classify_species ~ 2, # accurate results
-  #   species != classify_species ~ 1), # innacurate results
   success = case_when(
     species == classify_species ~ 'yes',
     species != classify_species ~ 'no'
