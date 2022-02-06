@@ -2,7 +2,9 @@
 title: "Assignment 2 Task 2 - Parameter Estimation with Purr"
 author: "Logan Ossentjuk"
 date: "2/5/2022"
-output: html_document
+output: 
+  html_document:
+    code_folding: hide
 ---
 
 **Data Citation** Lightfoot, D. and W.G. Whitford. 2020. Lizard pitfall trap data from 11 NPP study locations at the Jornada Basin LTER site, 1989-2006 ver 37. Environmental Data Initiative. https://doi.org/10.6073/pasta/4a6e258fb49c31e222ecbbcfd128967f
@@ -13,18 +15,23 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
 library(here)
-library(broom)
-library(modelr)
-library(cowplot)
-library(kableExtra)
 library(janitor)
+library(broom)
+library(kableExtra)
+library(cowplot)
+library(modelr)
+library(purrr)
 ```
 
 ```{r}
 lizards <- read_csv(here("data", "lizard.csv")) %>% 
   mutate(sex = case_when(sex == 'M' ~ 'Male',
                          sex == 'F' ~ 'Female')) %>% 
-  clean_names()
+  clean_names() %>% 
+  #Log Transformation
+  mutate(log_weight = log(weight)) %>% 
+  mutate(log_length = log(sv_length)) %>% 
+  drop_na()
 ```
 
 \[
@@ -42,17 +49,71 @@ lizards_model <- function(a, SVL, b) {
   return(W)
 }
 
-# Log Transformation
-
-lizards_log <- lizards %>% 
-  mutate(log_weight = log(weight)) %>% 
-  mutate(log_length = log(sv_length))
-
 # Generate parameter guesses from coefficients 
 
-guess_param <- lm(log_weight ~ log_length, data = lizards_log)
+model_guess <- lm(log_weight ~ log_length, data = lizards_log)
+```
 
-cf <- coefficients(guess_param)
+## NLS
+
+```{r}
+# Supply NLS with regression coefficients
+
+cf <- coefficients(model_guess)
+
+#Parameter b (length) guessed as 2.54, a calculated using `exp()`
+lizards_nls <- nls(weight ~ lizards_model(a, sv_length, b),
+                  data = lizards,
+                  start = list(a = exp(cf[1]),
+                               b = cf[2]))
+```
+
+**Table 1**
+```{r}
+### Create Table 
+tidy_nls <- tidy(lizards_nls)
+tidy_nls$p.value <- ifelse(tidy_nls$p.value < .001, paste("< .001"))
+
+tidy_nls %>% 
+  select(-statistic)
+kable(col.names = c("Terms", "Coefficients", "Standard Error", "p Value"), digits = 3) %>% 
+  kable_classic(bootstrap_options = "striped", full_width = FALSE) 
+```
+
+Present your fitted model on a plot with female and male lizards separated by color. You should include the nls model in `kable` output of the html.
+
+
+```{r}
+model_predict <- augment(lizards_nls)
+
+# predicted data given NLS
+ggplot() +
+   geom_point(data = lizards, 
+             aes(x = sv_length, 
+                y = weight, 
+                color = sex)) +
+   geom_line(data = model_predict, 
+             aes(x = sv_length,
+                 y = .fitted,
+                 color = "Model Predictions")) +
+  scale_color_manual(values = c("pink", "skyblue", "black")) +
+  theme_classic() +
+  theme(legend.title = element_blank()) +
+  labs( x = "SV Length (mm)", y = "Weight (g)")
+```
+**Figure 1.** Displays the predicted non-linear square model for SV Length (mm) versus Weight (g). Female lizards are represented by pink points, Male by blue and the black line represents the trained NLS model to predict Weight given SV Length. 
+
+```{r}
+#Calculate RMSE 
+lizards_rmse <- rmse(lizards_nls, data = lizards)
+
+### Filter for male Western Whiptails 
+
+lizards_m_whip <- lizards %>% 
+  filter(sex == "Male", spp == "CNTI")
+
+### Create model for subset
+guess_m_whip <- lm(log_weight ~ log_length, data = lizards_m_whip)
 ```
 
 
