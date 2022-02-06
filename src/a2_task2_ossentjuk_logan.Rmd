@@ -6,12 +6,12 @@ output:
   html_document:
     code_folding: hide
 ---
+# Overview 
 
-**Data Citation** Lightfoot, D. and W.G. Whitford. 2020. Lizard pitfall trap data from 11 NPP study locations at the Jornada Basin LTER site, 1989-2006 ver 37. Environmental Data Initiative. https://doi.org/10.6073/pasta/4a6e258fb49c31e222ecbbcfd128967f
 
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r setup, include=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE,  message = FALSE, warning = FALSE)
 
 library(tidyverse)
 library(here)
@@ -51,10 +51,9 @@ lizards_model <- function(a, SVL, b) {
 
 # Generate parameter guesses from coefficients 
 
-model_guess <- lm(log_weight ~ log_length, data = lizards_log)
+model_guess <- lm(log_weight ~ log_length, data = lizards)
 ```
 
-## NLS
 
 ```{r}
 # Supply NLS with regression coefficients
@@ -68,25 +67,23 @@ lizards_nls <- nls(weight ~ lizards_model(a, sv_length, b),
                                b = cf[2]))
 ```
 
-**Table 1**
+
 ```{r}
 ### Create Table 
 tidy_nls <- tidy(lizards_nls)
+
 tidy_nls$p.value <- ifelse(tidy_nls$p.value < .001, paste("< .001"))
 
 tidy_nls %>% 
-  select(-statistic)
-kable(col.names = c("Terms", "Coefficients", "Standard Error", "p Value"), digits = 3) %>% 
+  select(-statistic) %>% 
+kable(col.names = c("Terms", "Coefficients", "Standard Error", "p Value"), caption = "**Table 1**", digits = 3) %>% 
   kable_classic(bootstrap_options = "striped", full_width = FALSE) 
 ```
-
-Present your fitted model on a plot with female and male lizards separated by color. You should include the nls model in `kable` output of the html.
-
 
 ```{r}
 model_predict <- augment(lizards_nls)
 
-# predicted data given NLS
+# Plotting predicted data given NLS
 ggplot() +
    geom_point(data = lizards, 
              aes(x = sv_length, 
@@ -99,21 +96,98 @@ ggplot() +
   scale_color_manual(values = c("pink", "skyblue", "black")) +
   theme_classic() +
   theme(legend.title = element_blank()) +
-  labs( x = "SV Length (mm)", y = "Weight (g)")
+  labs( x = "SV Length (mm)", y = "Weight (g)", 
+        caption = "**Figure 1.** Displays the predicted non-linear square model for SV Length (mm) versus Weight (g). Female lizards are represented by pink points, Male by blue and the black line represents the 
+trained NLS model to predict Weight given SV Length.")
 ```
-**Figure 1.** Displays the predicted non-linear square model for SV Length (mm) versus Weight (g). Female lizards are represented by pink points, Male by blue and the black line represents the trained NLS model to predict Weight given SV Length. 
+
+**Figure 1.** Displays the predicted non-linear square model for SV Length (mm) versus Weight (g).
+Female lizards are represented by pink points, Male by blue and the black line represents the 
+trained NLS model to predict Weight given SV Length.
+
+
 
 ```{r}
-#Calculate RMSE 
-lizards_rmse <- rmse(lizards_nls, data = lizards)
+### Preparation for Table 
 
 ### Filter for male Western Whiptails 
 
 lizards_m_whip <- lizards %>% 
   filter(sex == "Male", spp == "CNTI")
 
+#Calculate RMSE 
+lizards_rmse <- rmse(lizards_nls, data = lizards)
+lizards_m_whip_rmse <- rmse(lizards_nls, data = lizards_m_whip)
+
 ### Create model for subset
 guess_m_whip <- lm(log_weight ~ log_length, data = lizards_m_whip)
+
+#tidy_guess_m_whip <- tidy(guess_m_whip)
+
+m_whip_cf <- coefficients(guess_m_whip)
+
+m_whip_nls <- nls(weight ~ lizards_model(a, sv_length, b),
+                  data = lizards_m_whip,
+                  start = list(a = exp(m_whip_cf[1]),
+                               b = m_whip_cf[2]))
+
+tidy_m_whip_nls <- tidy(m_whip_nls) # tidy output of model
 ```
 
 
+```{r}
+### Table of Male Whiptail NLS Model
+tidy_m_whip_nls %>%  
+  mutate(p.value = case_when(
+    p.value < 0.001 ~ "<0.001",
+    p.value > 0.001 ~ (as.character(round(p.value, 3))))) %>% 
+  kable(col.names = c("Term", 
+                      "Estimate",
+                      "Standard Error", 
+                      "Statistic", 
+                      "p Value"), caption = "**Table 2**", digits = 3) %>% 
+  kable_classic(bootstrap_options = "striped", full_width = FALSE)
+
+```
+
+
+```{r}
+#Generate predictions based on model
+
+m_whip_predict <- augment(m_whip_nls)
+
+#Create a complete data frame
+m_whip_complete <- data.frame(lizards, model_predict) %>% 
+  filter(sex == "Male", spp == "CNTI")
+
+#Calculate RMSE
+m_whip_rmse <- rmse(m_whip_nls, data = lizards_m_whip)
+lizards_complete_rmse <- rmse(lizards_nls, data = lizards_m_whip)
+
+# Graphing model fits given NLS
+ggplot() +
+  geom_point(data = lizards_m_whip, 
+             aes(
+               x = sv_length,
+               y = weight,
+               color = "Actual Data")) +
+  geom_line(data = m_whip_predict, 
+            aes(
+            x = sv_length,
+            y = .fitted,
+            color = "Male Whiptails Model")) +
+  geom_line(data = m_whip_complete, 
+            aes(
+            x = sv_length,
+            y = .fitted,
+            color = "All Lizards Model")) +
+  scale_color_viridis_d() +
+  theme_classic() +
+  labs( x = "SV Length (mm)", y = "Weight (g)") +
+  theme(legend.title = element_blank())
+```
+
+**Figure 2:** Compares true lizards weights (red) in comparison to SV Length. The weights predicted by the *Male Whiptail Model* (yellow ) and the *All Lizards Model* (blue line) =  previously shown in Figure 1 represent the populations in which these models were trained upon. Statistical analysis reveals that the *Male-Whiptails Model* better predicts actual weights (**RMSE** =`r round(m_whip_rmse, 2)`) better than the *All Lizards Model*, (**RMSE** = `r round(lizards_complete_rmse, 2)`). Given the lower RMSE of the *Male-Whiptails Model*, when predicting Weight as a function of SV Length, models based upon the Male Western Whiptail population are preferred. 
+
+
+**Data Citation** Lightfoot, D. and W.G. Whitford. 2020. Lizard pitfall trap data from 11 NPP study locations at the Jornada Basin LTER site, 1989-2006 ver 37. Environmental Data Initiative. https://doi.org/10.6073/pasta/4a6e258fb49c31e222ecbbcfd128967f
