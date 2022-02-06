@@ -29,6 +29,7 @@ library(GGally)
 library(jtools)
 library(caret)
 library(AICcmodavg)
+library(broom)
 ```
 
 # Data Visualization 
@@ -46,8 +47,8 @@ palmetto_exp <- palmetto %>%
   ggpairs(aes(color = species))
 #palmetto_sub
 
-palmetto_plot <-palmetto %>% 
-  mutate(species = as.character(species)) %>% 
+palmetto_sub <-palmetto %>% 
+  mutate(species = as.factor(species)) %>% 
   select(height, length, width, green_lvs, species) %>% 
   drop_na()
 ```
@@ -55,7 +56,7 @@ palmetto_plot <-palmetto %>%
 ```{r}
 ### Figures
 
-p1 <- ggplot(data = palmetto_plot, aes (x = species, y = height)) + 
+p1 <- ggplot(data = palmetto_sub, aes (x = species, y = height)) + 
   geom_boxplot(aes(fill = species, width = 0.2)) + 
    scale_fill_manual(values = c("skyblue", "forestgreen"), 
                     name = "Species") +
@@ -65,7 +66,7 @@ p1 <- ggplot(data = palmetto_plot, aes (x = species, y = height)) +
   labs( x = "Species", 
         y = "Height")
 
-p2 <- ggplot(data = palmetto_plot, aes (x = species, y = green_lvs)) + 
+p2 <- ggplot(data = palmetto_sub, aes (x = species, y = green_lvs)) + 
   geom_boxplot(aes(fill = species, width = 0.2)) +
   scale_fill_manual(values = c("skyblue","forestgreen"), 
                      name = "Species") +
@@ -75,7 +76,7 @@ p2 <- ggplot(data = palmetto_plot, aes (x = species, y = green_lvs)) +
   labs( x = "Species ", 
         y = "Green Leaf Percentage")
 
-p3 <- ggplot(data = palmetto_plot, aes(x = species, y = length)) + 
+p3 <- ggplot(data = palmetto_sub, aes(x = species, y = length)) + 
   geom_boxplot(aes(fill = species, width = 0.2)) + 
    scale_fill_manual(values = c("skyblue", "forestgreen"), 
                     name = "Species") +
@@ -85,11 +86,11 @@ p3 <- ggplot(data = palmetto_plot, aes(x = species, y = length)) +
   labs( x = "Species", 
         y = "Length")
 
-p1 | p2 | p3 | 
+p1 | p2 | p3 
 
 
 ```
-
+**TABLE CAPTION** 
 
 # Binary Logistic Regression
 
@@ -98,13 +99,186 @@ Log odds of plant type using plant height, canopy length, canopy width and green
 Log odds of plant type using plant height, canopy width and green leaves (i.e., drop canopy length for this model)
 Make sure you understand which species is the first ‘0’ factor level, and which is ‘1’ - you may want to convert to a factor first, then use the levels() function to check.  Use repeated cross validation (ten-fold cross validation, repeated at least ten times - you can use functions from the {caret} package to automate this, or manually perform the analysis using for-loops).  Based on the results of the cross validation, describe which model performs better at classification; you may wish to compare AICC values as well to support your decision. 
 
+```{r subset for blr}
+binary_palmetto <- palmetto_sub %>% 
+  mutate( species = case_when(species %in% c('1') ~ 'Serenoa repens',
+                              species %in% c('2') ~ 'Sabal etonia')) %>% 
+  filter(species %in% c('Serenoa repens', 'Sabal etonia')) %>% 
+  mutate(species = fct_drop(species)) %>% 
+  #select(-island, -year) %>%  
+  drop_na()
+```
 
+```{r create functions for blr}
+f1 <- species ~ height + length + width + green_lvs
+
+palmetto_blr1 <- glm(formula = f1, 
+                    data = binary_palmetto,
+                    family = 'binomial')
+```
+
+```{r see results}
+palmetto_blr1
+
+summary(palmetto_blr1)
+
+blr1_tidy1 <- broom::tidy(palmetto_blr1)
+
+```
+
+```{r}
+ggplot(binary_palmetto, aes(x= green_lvs, y = length)) +
+  geom_jitter(aes(color = species))
+
+ggplot(binary_palmetto, aes(x= green_lvs, y = height)) +
+  geom_jitter(aes(color = species))
+```
+
+```{r}
+blr1_fitted <- palmetto_blr1 %>% 
+  broom::augment(type.predict = 'response')
+```
+
+
+Let's plot the probability 
+```{r}
+###FIX THIS 
+ggplot(data = blr1_fitted, aes(x = green_lvs, y = .fitted)) +
+  geom_point(aes(color = species)) +
+  geom_smooth(aes(color = species), se = FALSE) +
+  labs (x = "Green Leaves Percentage",
+        y = 'Probability of outcome "Serenoa repens"')
+```
+
+```{r}
+effect_plot(palmetto_blr1,
+            pred = green_lvs, 
+            interval = TRUE, 
+            y.label = "Probability of 'Serenoa repens'")
+
+effect_plot(palmetto_blr1,
+            pred = width, 
+            interval = TRUE, 
+            y.label = "Probability of 'Serenoa repens'")
+```
+
+### Model 2 
+```{r}
+f2 <- species ~ height + width + green_lvs
+
+palmetto_blr2 <- glm(formula = f2, 
+                    data = binary_palmetto,
+                    family = 'binomial')
+```
+
+```{r}
+palmetto_blr2
+
+summary(palmetto_blr2)
+
+blr1_tidy2 <- broom::tidy(palmetto_blr2)
+```
+
+```{r}
+ggplot(binary_palmetto, aes(x= green_lvs, y = width)) +
+  geom_jitter(aes(color = species))
+```
+
+```{r}
+effect_plot(palmetto_blr2,
+            pred = green_lvs, 
+            interval = TRUE, 
+            y.label = "Probability of 'Sabal etonia'")
+
+effect_plot(palmetto_blr2,
+            pred = width, 
+            interval = TRUE, 
+            y.label = "Probability of 'Sabal etonia'")
+```
 # Model Training 
 
-Train your selected model using the entire dataset, and create a finalized table containing the binary logistic regression model results (at least coefficients, standard errors for the coefficients, and information for significance - consider using broom::tidy() to get you most of the way). 
+**Train your selected model using the entire dataset, and create a finalized table containing the binary logistic regression model results (at least coefficients, standard errors for the coefficients, and information for significance - consider using broom::tidy() to get you most of the way). **
+
+ ## AIC values 
+
+```{r}
+plant_aic <- AICcmodavg::aictab(list(palmetto_blr1, palmetto_blr2))
+AICc
+```
+
+## 10-fold cross validation, use prediction accuracy as our metric 
+
+```{r}
+set.seed(333)
+
+tr_ctrl <- trainControl(method = 'repeatedcv', number = 10, repeats = 10)
+
+### Train the model 
+
+model1 <- train(f1, data = palmetto_sub,
+                method = 'glm', family = 'binomial',
+                trControl = tr_ctrl)
+model1
+
+model2 <- train(f2, data = palmetto_sub,
+                method = 'glm', family = 'binomial',
+                trControl = tr_ctrl)
+model2
+```
+
+
+**Based on the results of the cross validation, describe which model performs better at classification; you may wish to compare AICC values as well to support your decision. **
+
+Part D: 
+
+**Finalized Data Table** 
+
+```{r}
+palmetto_blr1_tidy <- broom::tidy(palmetto_blr1)
+
+palmetto_blr1_tidy %>% 
+  mutate(p.value = ifelse(p.value < .005, paste("<0.005"))) %>% 
+  kable(digits = 2, col.names = c('Term', 'Estimate', 'Standard Error', 'Statistic', 'P Value'), caption = "") %>% 
+          kable_classic(bootstrap_options = 'striped', full_width = FALSE)
+```
+
+
+**A section that evaluates how successfully this model would “classify” a plant as the correct species, using a 50% cutoff (e.g. if the probability is >=50% that it is species A, then it would be classified as species A). Use broom::augment() to find the probabilities (instead of log-odds) for each plant in the original dataset, then add a column for which species your model would classify that plant as (using a 50% cutoff) based on the included predictor variables. The outcome should be a finalized table showing, for each species, how many plants in the original dataset would be correctly classified and how many were incorrectly classified by the model, as well as an additional column with “% correctly classified”. **Add a table caption above the table, and a 1-2 sentence conclusion paragraph after.** 
 
 
 
+## Model 1 Predictions
+
+```{r}
+
+palmetto_blr1_fitted <- palmetto_blr1 %>% 
+  augment(type.predict = "response") %>% 
+  mutate(classify_species = case_when(
+    .fitted > .5 ~ "Serenoa repens", 
+    .fitted < .5 ~ "Sabal etonia"), 
+  # accuracy = case_when(
+  #   species == classify_species ~ 2, # accurate results
+  #   species != classify_species ~ 1), # innacurate results
+  success = case_when(
+    species == classify_species ~ 'yes',
+    species != classify_species ~ 'no'
+  ))
+
+sum_success <- palmetto_blr1_fitted %>% 
+  group_by(species, success) %>% 
+  summarize(count = n()) %>% 
+  pivot_wider(names_from = success,
+              values_from = count) %>% 
+  mutate(percent_correct = yes/(no+yes) *100)
+
+sum_success %>% 
+  kable(col.names = c('Species',
+                      'Incorrect',
+                      'Correct',
+                      '%Correctly Classified'),
+        caption = '**Table 2: jsjs**') %>% 
+  kable_classic(full_width = FALSE)
+```
 
 
 

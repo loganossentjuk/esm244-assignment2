@@ -1,0 +1,58 @@
+---
+title: "Assignment 2 Task 2 - Parameter Estimation with Purr"
+author: "Logan Ossentjuk"
+date: "2/5/2022"
+output: html_document
+---
+
+**Data Citation** Lightfoot, D. and W.G. Whitford. 2020. Lizard pitfall trap data from 11 NPP study locations at the Jornada Basin LTER site, 1989-2006 ver 37. Environmental Data Initiative. https://doi.org/10.6073/pasta/4a6e258fb49c31e222ecbbcfd128967f
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(here)
+library(broom)
+library(modelr)
+library(cowplot)
+library(kableExtra)
+library(janitor)
+```
+
+```{r}
+lizards <- read_csv(here("data", "lizard.csv")) %>% 
+  mutate(sex = case_when(sex == 'M' ~ 'Male',
+                         sex == 'F' ~ 'Female')) %>% 
+  clean_names()
+```
+
+\[
+W=a(SVL)^b
+\]
+
+*Weight is given by W, snout to vent length by SVL, and a and b are the parameters that need to be fitted.*
+
+```{r, include=FALSE}
+
+#Create Model 
+
+lizards_model <- function(a, SVL, b) {
+  W = a*(SVL)^b
+  return(W)
+}
+
+# Log Transformation
+
+lizards_log <- lizards %>% 
+  mutate(log_weight = log(weight)) %>% 
+  mutate(log_length = log(sv_length))
+
+# Generate parameter guesses from coefficients 
+
+guess_param <- lm(log_weight ~ log_length, data = lizards_log)
+
+cf <- coefficients(guess_param)
+```
+
+
