@@ -76,7 +76,7 @@ tidy_nls$p.value <- ifelse(tidy_nls$p.value < .001, paste("< .001"))
 
 tidy_nls %>% 
   select(-statistic) %>% 
-kable(col.names = c("Terms", "Coefficients", "Standard Error", "p Value"), caption = "**Table 1**", digits = 3) %>% 
+kable(col.names = c("Terms", "Coefficients", "Standard Error", "p Value"), caption = "**Table 1: ** NSL Model Variable Significance", digits = 3) %>% 
   kable_classic(bootstrap_options = "striped", full_width = FALSE) 
 ```
 
@@ -96,9 +96,7 @@ ggplot() +
   scale_color_manual(values = c("pink", "skyblue", "black")) +
   theme_classic() +
   theme(legend.title = element_blank()) +
-  labs( x = "SV Length (mm)", y = "Weight (g)", 
-        caption = "**Figure 1.** Displays the predicted non-linear square model for SV Length (mm) versus Weight (g). Female lizards are represented by pink points, Male by blue and the black line represents the 
-trained NLS model to predict Weight given SV Length.")
+  labs( x = "SV Length (mm)", y = "Weight (g)")
 ```
 
 **Figure 1.** Displays the predicted non-linear square model for SV Length (mm) versus Weight (g).
@@ -145,7 +143,7 @@ tidy_m_whip_nls %>%
                       "Estimate",
                       "Standard Error", 
                       "Statistic", 
-                      "p Value"), caption = "**Table 2**", digits = 3) %>% 
+                      "p Value"), caption = "**Table 2:** NSL Model Variable Significance ", digits = 3) %>% 
   kable_classic(bootstrap_options = "striped", full_width = FALSE)
 
 ```
@@ -187,7 +185,7 @@ ggplot() +
   theme(legend.title = element_blank())
 ```
 
-**Figure 2:** Compares true lizards weights (red) in comparison to SV Length. The weights predicted by the *Male Whiptail Model* (yellow ) and the *All Lizards Model* (blue line) =  previously shown in Figure 1 represent the populations in which these models were trained upon. Statistical analysis reveals that the *Male-Whiptails Model* better predicts actual weights (**RMSE** =`r round(m_whip_rmse, 2)`) better than the *All Lizards Model*, (**RMSE** = `r round(lizards_complete_rmse, 2)`). Given the lower RMSE of the *Male-Whiptails Model*, when predicting Weight as a function of SV Length, models based upon the Male Western Whiptail population are preferred. 
+**Figure 2:** Compares true lizards weights (red) in comparison to SV Length. The weights predicted by the *Male Whiptail Model* (yellow ) and the *All Lizards Model* (blue line) =  previously shown in Figure 1 represent the populations in which these models were trained upon. Statistical analysis reveals that the *Male-Whiptails Model* better predicts actual weights (**RMSE** = `r round(m_whip_rmse, 2)`) better than the *All Lizards Model*, (**RMSE** = `r round(lizards_complete_rmse, 2)`). Given the lower RMSE of the *Male-Whiptails Model*, when predicting Weight as a function of SV Length, models based upon the Male Western Whiptail population are preferred. 
 
 
 **Data Citation** Lightfoot, D. and W.G. Whitford. 2020. Lizard pitfall trap data from 11 NPP study locations at the Jornada Basin LTER site, 1989-2006 ver 37. Environmental Data Initiative. https://doi.org/10.6073/pasta/4a6e258fb49c31e222ecbbcfd128967f
