@@ -38,7 +38,11 @@ lizards <- read_csv(here("data", "lizard.csv")) %>%
 W=a(SVL)^b
 \]
 
-*Weight is given by W, snout to vent length by SVL, and a and b are the parameters that need to be fitted.*
+#### W: Weight (g),
+
+#### SVL: Snout to vent length (mm),
+
+#### a and b: the parameters that need to be fitted.
 
 ```{r, include=FALSE}
 
@@ -113,9 +117,7 @@ trained NLS model to predict Weight given SV Length.
 lizards_m_whip <- lizards %>% 
   filter(sex == "Male", spp == "CNTI")
 
-#Calculate RMSE 
-lizards_rmse <- rmse(lizards_nls, data = lizards)
-lizards_m_whip_rmse <- rmse(lizards_nls, data = lizards_m_whip)
+
 
 ### Create model for subset
 guess_m_whip <- lm(log_weight ~ log_length, data = lizards_m_whip)
@@ -130,6 +132,10 @@ m_whip_nls <- nls(weight ~ lizards_model(a, sv_length, b),
                                b = m_whip_cf[2]))
 
 tidy_m_whip_nls <- tidy(m_whip_nls) # tidy output of model
+
+#Calculate RMSE 
+lizards_rmse <- rmse(lizards_nls, data = lizards)
+lizards_m_whip_rmse <- rmse(m_whip_nls, data = lizards_m_whip)
 ```
 
 

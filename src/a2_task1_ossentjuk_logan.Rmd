@@ -1,5 +1,5 @@
 ---
-title: "a2_task1_ossentjuk_logan"
+title: "Task 2 - Palmetto Species Differentiation Using Binary Logistic Regression"
 author: "Logan Ossentjuk"
 date: "2/1/2022"
 output: 
@@ -297,7 +297,7 @@ sum_success %>%
 ```
 
 
-**Conclusion:** Model 1 is the most effective in determining whetehra a Palmetto species is *Serenoa repens* or *Sabal etonia* when given height, canopy width and length, and green leaf cover. It determines each species with high accuracy (*Serenoa repens* = `r round(sum_success$percent_correct[1], 1)`, *Sabal etonia* = `r round(sum_success$percent_correct[2], 1)`). With a relatively constrained data set these are incredible results, however future work should be done to improve classification accuracy and train the model on future data. 
+**Conclusion:** Model 1 is the most effective in determining whether a Palmetto species is *Serenoa repens* or *Sabal etonia* when given height, canopy width and length, and green leaf cover. It determines each species with high accuracy (*Serenoa repens* = `r round(sum_success$percent_correct[1], 1)`, *Sabal etonia* = `r round(sum_success$percent_correct[2], 1)`). With a relatively constrained data set these are incredible results, however future work should be done to improve classification accuracy and train the model on future data. 
 
 
 **Data citation:** Abrahamson, W.G. 2019. Survival, growth and biomass estimates of two dominant palmetto species of south-central Florida from 1981 - 2017, ongoing at 5-year intervals ver 1. Environmental Data Initiative. https://doi.org/10.6073/pasta/f2f96ec76fbbd4b9db431c79a770c4d5
